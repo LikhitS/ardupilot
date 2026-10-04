@@ -65,9 +65,15 @@ jobs:
         env:
           PATH: /usr/bin:$(cygpath ${SYSTEMROOT})/system32
         shell: C:\cygwin\bin\bash.exe -eo pipefail '{0}'
+        # Cygwin now also installs python 3.12 as a dependency and points python3 at it; ArduPilot's build pins
+        # 3.9 (the python39-* packages above), so make python/python3 mean 3.9 for this job.
         run: >-
-          python3 -m pip install --progress-bar off empy==3.3.4 pexpect &&
-          python3 -m pip install --progress-bar off dronecan --upgrade
+          mkdir -p /usr/local/bin &&
+          ln -sf /usr/bin/python3.9 /usr/local/bin/python3 &&
+          ln -sf /usr/bin/python3.9 /usr/local/bin/python &&
+          /usr/local/bin/python3 --version &&
+          /usr/local/bin/python3 -m pip install --progress-bar off empy==3.3.4 pexpect &&
+          /usr/local/bin/python3 -m pip install --progress-bar off dronecan --upgrade
       - name: Build Windows SITL
         env:
           PATH: /usr/bin:$(cygpath ${SYSTEMROOT})/system32
