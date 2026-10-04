@@ -43,7 +43,9 @@ jobs:
           # the firmware must identify itself as Sarus and keep the ArduPilot prefix ground stations rely on
           for v in ArduPlane:arduplane ArduCopter:arducopter ArduRover:ardurover; do
             name=${v%%:*}; file=${v##*:}
-            strings "build/${{ matrix.board }}/bin/$file" | grep -q "^$name V[0-9.]* Sarus-[0-9]" || { echo "firmware string missing in $file"; exit 1; }
+            found=$(strings "build/${{ matrix.board }}/bin/$file" | grep -o "$name V[0-9.]* Sarus-[0-9]*" | head -1)
+            [ -n "$found" ] || { echo "firmware string missing in $file"; exit 1; }
+            echo "$file reports: $found"
           done
           ls -la out/${{ matrix.board }}
       - uses: actions/upload-artifact@v4
