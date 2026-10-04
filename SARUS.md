@@ -1,33 +1,38 @@
 # Sarus firmware
 
-Sarus Aerospace's build of [ArduPilot](https://github.com/ArduPilot/ardupilot) (Plane including QuadPlane,
-Copter and Rover) for Pixhawk-class flight controllers. It is free software under the GNU GPL v3, like ArduPilot.
+This repository is Sarus Aerospace's build of [ArduPilot](https://github.com/ArduPilot/ardupilot): Plane
+(QuadPlane included), Copter and Rover, for Pixhawk-class flight controllers. Like ArduPilot it is free
+software under the GNU GPL version 3.
 
-## What differs from ArduPilot
+## How it differs from ArduPilot
 
-| Version | Change |
-|---|---|
-| 4.7.1-S1 | Identity only: the firmware reports `ArduPlane V4.7.1 Sarus-1` (and likewise for Copter and Rover). Flight behaviour is identical to ArduPilot 4.7.1. The `Ardu… V` prefix is kept on purpose, because ground stations use it to recognise the vehicle type. |
+Version 4.7.1-S1 changes one thing, the name. The firmware reports `ArduPlane V4.7.1 Sarus-1`, and Copter
+and Rover do the same; in flight it behaves exactly like ArduPilot 4.7.1. We kept the `Ardu… V` prefix on
+purpose. Ground stations read it to work out which kind of vehicle is connected, and without it a QuadPlane
+could be mistaken for a Copter.
 
-Later behaviour changes are listed here, one per release, each with simulator evidence.
+Any later change in behaviour will be described here, one per release, together with the simulator results
+that justify it.
 
 ## Branches and releases
 
-- `sarus-4.7.1`: Sarus changes on top of ArduPilot's `Plane-4.7.1` / `Copter-4.7.1` / `Rover-4.7.1` (same commit).
-- Tag `sarus-v4.7.1-S1` publishes a stable release; `sarus-v4.7.1-S1-beta` publishes a beta.
-- Each release contains `Sarus-<Vehicle>-<version>-S<build>-<board>.apj` firmware files, the Windows SITL
-  simulators, and the release's firmware list.
-- The branch `sarus-manifest` holds `manifest.json`, the list that Sarus Operation Planner's Install Firmware page
-  reads alongside ArduPilot's own list.
+Sarus work sits on `sarus-4.7.1`, which starts from ArduPilot's `Plane-4.7.1` tag (Copter-4.7.1 and
+Rover-4.7.1 point at the same commit). Pushing the tag `sarus-v4.7.1-S1` publishes a stable release, and
+`sarus-v4.7.1-S1-beta` a beta. A release holds firmware files named `Sarus-<Vehicle>-<version>-S<build>-<board>.apj`,
+the Windows simulator, and the firmware list for that release.
+
+The `sarus-manifest` branch keeps `manifest.json`, the list Sarus Operation Planner reads next to
+ArduPilot's own when it fills the Install Firmware page.
 
 ## Building
 
-The workflow `.github/workflows/sarus-firmware.yml` builds every board with ArduPilot's own build container:
+`.github/workflows/sarus-firmware.yml` builds each board inside ArduPilot's own build container. By hand, the
+same build is:
 
 ```
 ./waf configure --board CubeOrange
 ./waf plane copter rover
 ```
 
-`Tools/sarus/make_manifest.py` produces the firmware list with ArduPilot's `Tools/scripts/generate_manifest.py`,
-so board ids, USB ids and bootloader strings are exactly ArduPilot's.
+`Tools/sarus/make_manifest.py` writes the firmware list using ArduPilot's `Tools/scripts/generate_manifest.py`
+unchanged, which is why board IDs, USB IDs and bootloader names match ArduPilot's exactly.
