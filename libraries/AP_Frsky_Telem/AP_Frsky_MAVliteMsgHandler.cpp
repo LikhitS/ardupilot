@@ -1,4 +1,5 @@
 #include "AP_Frsky_MAVliteMsgHandler.h"
+#include <AP_SarusLock/AP_SarusLock.h>
 
 #include <AC_Fence/AC_Fence.h>
 #include <AP_Vehicle/AP_Vehicle.h>
@@ -75,6 +76,12 @@ MAV_RESULT AP_Frsky_MAVliteMsgHandler::handle_command(const mavlink_command_long
         //case MAV_CMD_DO_SET_ROI_LOCATION:
         //case MAV_CMD_DO_SET_ROI:
         case MAV_CMD_PREFLIGHT_CALIBRATION:
+#if AP_SARUS_LOCK_ENABLED
+            if (!AP::sarus_lock().local_change_allowed()) {
+                AP::sarus_lock().notify_denied("setup command");
+                return MAV_RESULT_DENIED;
+            }
+#endif
             return handle_command_preflight_calibration_baro(mav_command_long);
         //case MAV_CMD_BATTERY_RESET:
         //case MAV_CMD_PREFLIGHT_UAVCAN:
@@ -224,6 +231,10 @@ void AP_Frsky_MAVliteMsgHandler::handle_param_set(const AP_Frsky_MAVlite_Message
     }
     if ((parameter_flags & AP_PARAM_FLAG_INTERNAL_USE_ONLY) || vp->is_read_only()) {
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Param write denied (%s)", param_name);
+#if AP_SARUS_LOCK_ENABLED
+    } else if (!AP::sarus_lock().local_change_allowed()) {
+        AP::sarus_lock().notify_denied("parameter change");
+#endif
     } else if (!AP_Param::set_and_save_by_name(param_name, param_value)) {
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Param write failed (%s)", param_name);
     }
