@@ -100,17 +100,17 @@ jobs:
           sleep 15
           python3 "$GITHUB_WORKSPACE/Tools/sarus/tests/lock_sitl_test.py" --reboot
           kill %1 || true
-      - name: Without a key nothing is locked, simulator
+      - name: Release build, owner keys only, simulator
         shell: bash
         run: |
           set -e
           ./waf configure --board sitl
           ./waf plane
-          mkdir -p /tmp/sitl-nokey && cd /tmp/sitl-nokey
+          mkdir -p /tmp/sitl-release && cd /tmp/sitl-release
           "$GITHUB_WORKSPACE/build/sitl/bin/arduplane" -w --model plane --speedup 1 \
             --defaults "$GITHUB_WORKSPACE/Tools/autotest/models/plane.parm" -I0 > sitl.log 2>&1 &
           sleep 15
-          python3 "$GITHUB_WORKSPACE/Tools/sarus/tests/lock_sitl_test.py" --expect-inactive
+          python3 "$GITHUB_WORKSPACE/Tools/sarus/tests/lock_sitl_test.py" --expect-release
           kill %1 || true
       - uses: actions/upload-artifact@v4
         if: failure()

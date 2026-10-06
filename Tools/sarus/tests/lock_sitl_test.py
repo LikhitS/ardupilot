@@ -160,6 +160,26 @@ def inactive(args):
     return 1 if failures else 0
 
 
+def release(args):
+    """release firmware (owner keys, no test key): locked, and the public test key must not unlock it"""
+    MAV = mavutil.mavlink
+    m = connect(args.main, 255)
+    f = status(m)
+    check(f is not None and f & FLAG_ACTIVE and not f & FLAG_UNLOCKED, 'release build reports the lock active and locked (flags %s)' % f)
+    r = secure(m, OP_STATUS)
+    check(r is not None and r.data[2] >= 1, 'release build holds the owner key(s) (%s)' % (r.data[2] if r else None))
+    test_key = lock_keys.derive_private(lock_keys.TEST_PASSWORD, lock_keys.TEST_SALT)
+    check(unlock(m, test_key) == MAV.MAV_RESULT_DENIED, 'the public simulator test key does not unlock release firmware')
+    check(unlock(m, Ed25519PrivateKey.generate()) == MAV.MAV_RESULT_DENIED, 'a random key does not unlock it')
+    original = get_param(m, PARAM)
+    got, _ = set_param(m, PARAM, 0.0 if original else 1.0)
+    check(got == original and get_param(m, PARAM) == original, 'release build refuses a parameter write')
+    check(command(m, MAV.MAV_CMD_REQUEST_MESSAGE, MAV.MAVLINK_MSG_ID_AUTOPILOT_VERSION) == MAV.MAV_RESULT_ACCEPTED,
+          'release build still accepts ordinary commands')
+    print('\n%s: %d failure(s)' % ('PASS' if not failures else 'FAIL', len(failures)))
+    return 1 if failures else 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--main', default='tcp:127.0.0.1:5760')
@@ -167,9 +187,13 @@ def main():
     ap.add_argument('--reboot', action='store_true', help='also check that a reboot locks again')
     ap.add_argument('--expect-inactive', action='store_true',
                     help='firmware built without keys: check that nothing is locked')
+    ap.add_argument('--expect-release', action='store_true',
+                    help='firmware built with owner keys only: locked, and the test key does not unlock it')
     args = ap.parse_args()
     if args.expect_inactive:
         return inactive(args)
+    if args.expect_release:
+        return release(args)
 
     key = lock_keys.derive_private(lock_keys.TEST_PASSWORD, lock_keys.TEST_SALT)
     stranger = Ed25519PrivateKey.generate()
