@@ -1,10 +1,11 @@
+<!-- lint-allow: unlock -->
 # Sarus parameter lock
 
 Sarus firmware refuses setup changes from a ground station until that station proves it knows the owner's admin password. Anyone can still connect, watch telemetry, read every parameter, plan and fly. What needs the password is changing how the aircraft is set up.
 
 ## What is locked
 
-While locked, the aircraft refuses parameter writes (it answers with PARAM_ERROR and sends back the value it keeps), parameter resets, every calibration, sensor offset changes, reboot into the bootloader, bootloader flashing, SD card formatting, receiver pairing, Lua scripting commands, OSD parameter changes, MAVLink signing setup, and any file write, rename or delete over MAVLink FTP. FTP writes are included because a parameter file written to `@PARAM` loads parameters, and a script copied to `APM/scripts` can set them. A plain reboot or shutdown stays open.
+While locked, the aircraft refuses parameter writes (it sends back the value it keeps, and on the 4.7 line also a PARAM_ERROR), parameter resets, every calibration, sensor offset changes, reboot into the bootloader, bootloader flashing, SD card formatting, receiver pairing, Lua scripting commands, OSD parameter changes, MAVLink signing setup, and any file write, rename or delete over MAVLink FTP. FTP writes are included because a parameter file written to `@PARAM` loads parameters, and a script copied to `APM/scripts` can set them. A plain reboot or shutdown stays open.
 
 Each refusal sends the message "Sarus: locked, ... refused" at most once every two seconds.
 
@@ -18,7 +19,7 @@ The exchange uses the SECURE_COMMAND message with operation numbers starting 0x5
 2. The station signs a 35-byte block, the text "SARUS-LOCK1" with a terminating zero, the operation number, the aircraft's system and component ids, the station's own system id and the nonce. It sends UNLOCK with the nonce and the 64-byte signature.
 3. The aircraft checks the signature against each public key. A nonce is good for one attempt, for 30 seconds, and only from the station and link that asked for it, so a recorded unlock cannot be replayed.
 
-The unlock belongs to that station on that link. Another station, or the same station id on a different radio, is still refused. It ends on reboot, on a LOCK request, or after 10 seconds of silence from that station while disarmed. It never ends in flight, but a new unlock is refused while armed, because the signature check costs a few milliseconds of main-loop time. Unlock on the ground before take-off if you intend to tune in the air.
+The unlock belongs to that station on that link. Another station, or the same station id on a different radio, is still refused. It ends on reboot, on a LOCK request, or after 10 seconds of silence from that station while disarmed. Nothing ends it in flight, but a new unlock is refused while armed, because the signature check costs a few milliseconds of main-loop time. Unlock on the ground before take-off if you intend to tune in the air.
 
 ## Keys
 
