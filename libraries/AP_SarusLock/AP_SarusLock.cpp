@@ -6,6 +6,7 @@
 #if AP_SARUS_LOCK_ENABLED
 
 #include <AP_Math/AP_Math.h>
+#include <AP_Param/AP_Param.h>
 #include <AP_CheckFirmware/monocypher.h>
 #include <GCS_MAVLink/GCS.h>
 #include "monocypher_ed25519.h"
@@ -23,7 +24,10 @@ struct PublicKey {
 
 // keys that may unlock this firmware; the all-zero entry ends the list and is never a key
 const PublicKey public_keys[] = {
-#ifdef AP_SARUS_LOCK_TEST_KEY
+#if defined(AP_SARUS_LOCK_TEST_KEY) && AP_SARUS_LOCK_TEST_KEY
+#if CONFIG_HAL_BOARD != HAL_BOARD_SITL
+#error "the Sarus test key has a public password and may only be built into simulator firmware"
+#endif
     // test key for simulator builds only; its password is public (Tools/sarus/SARUS_LOCK.md)
     { AP_SARUS_LOCK_TEST_KEY_BYTES },
 #endif
@@ -89,6 +93,10 @@ uint8_t AP_SarusLock::status_flags(mavlink_channel_t chan, uint8_t sysid)
 
 void AP_SarusLock::note_traffic(mavlink_channel_t chan, uint8_t sysid)
 {
+    // the arrival time of every packet, to the microsecond, goes into the next nonce
+    const uint32_t t = AP_HAL::micros();
+    entropy[entropy_pos++ % sizeof(entropy)] ^= uint8_t(t ^ (t >> 8) ^ (t >> 16));
+
     if (!unlocked || chan != unlocked_chan || sysid != unlocked_sysid) {
         return;
     }
@@ -109,6 +117,38 @@ bool AP_SarusLock::change_allowed(mavlink_channel_t chan, uint8_t sysid)
     return unlocked_for(chan, sysid);
 }
 
+bool AP_SarusLock::local_change_allowed()
+{
+    if (!active()) {
+        return true;
+    }
+    WITH_SEMAPHORE(sem);
+    expire_unlock();
+    return unlocked;
+}
+
+// auxiliary functions that save parameters or calibrations; numbered so one list serves 4.6 and 4.7
+static bool aux_function_changes_setup(uint16_t function)
+{
+    switch (function) {
+    case 5:   // SAVE_TRIM
+    case 17:  // AUTOTUNE_MODE (saves gains)
+    case 50:  // LEARN_CRUISE
+    case 62:  // COMPASS_LEARN
+    case 91:  // ARSPD_CALIBRATE
+    case 107: // FW_AUTOTUNE
+    case 155: // TRIM_TO_CURRENT_SERVO_RC
+    case 158: // OPTFLOW_CAL
+    case 162: // FFT_NOTCH_TUNE
+    case 171: // MAG_CAL
+    case 180: // AUTOTUNE_TEST_GAINS
+    case 181: // QUICKTUNE
+    case 182: // AHRS_AUTO_TRIM (4.7)
+        return true;
+    }
+    return false;
+}
+
 bool AP_SarusLock::command_allowed(uint16_t command, float param1, mavlink_channel_t chan, uint8_t sysid)
 {
     switch (command) {
@@ -126,6 +166,13 @@ bool AP_SarusLock::command_allowed(uint16_t command, float param1, mavlink_chann
     case MAV_CMD_STORAGE_FORMAT:
     case MAV_CMD_START_RX_PAIR:
     case MAV_CMD_SCRIPTING:
+    case MAV_CMD_DO_AUTOTUNE_ENABLE:
+        break;
+    case MAV_CMD_DO_AUX_FUNCTION:
+        // flight functions stay open; those that save setup do not
+        if (!aux_function_changes_setup(uint16_t(param1))) {
+            return true;
+        }
         break;
     case MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
         // a plain reboot or shutdown stays open; the bootloader and debug actions do not
@@ -157,11 +204,16 @@ void AP_SarusLock::notify_denied(const char *what)
 void AP_SarusLock::make_nonce()
 {
     // hash whatever randomness the board has with values that differ per board and per boot
+    // F4 boards have no hardware generator in use, so get_random_vals() returns a seeded sequence there; the packet
+    // timings, the boot count and the previous nonce keep nonces apart across boots and within one
     struct PACKED {
         uint8_t rnd[32];
         uint64_t time_us;
         uint8_t unique_id[12];
         uint32_t extra[4];
+        uint8_t pool[sizeof(entropy)];
+        uint8_t previous[NONCE_LEN];
+        float boots;
     } seed {};
     if (!hal.util->get_random_vals(seed.rnd, sizeof(seed.rnd))) {
         for (uint8_t i = 0; i < sizeof(seed.rnd); i += 2) {
@@ -173,6 +225,9 @@ void AP_SarusLock::make_nonce()
     uint8_t uid_len = sizeof(seed.unique_id);
     hal.util->get_system_id_unformatted(seed.unique_id, uid_len);
     seed.time_us = AP_HAL::micros64();
+    memcpy(seed.pool, entropy, sizeof(seed.pool));
+    memcpy(seed.previous, nonce, sizeof(seed.previous));
+    AP_Param::get("STAT_BOOTCNT", seed.boots);
     for (uint8_t i = 0; i < ARRAY_SIZE(seed.extra); i++) {
         seed.extra[i] = (uint32_t(get_random16()) << 16) | get_random16();
     }
@@ -191,6 +246,18 @@ bool AP_SarusLock::signature_ok(const SignedBlock &block, const uint8_t sig[SIG_
         }
     }
     return false;
+}
+
+void AP_SarusLock::refuse_unlock(mavlink_channel_t chan, const mavlink_secure_command_t &pkt, uint8_t gcs_sysid,
+                                 const char *why)
+{
+    // at most one message every two seconds, so a stream of bad requests cannot push others out
+    const uint32_t now = AP_HAL::millis();
+    if (last_refused_text_ms == 0 || now - last_refused_text_ms >= 2000) {
+        last_refused_text_ms = MAX(now, 1U);
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Sarus: unlock refused (%s)", why);
+    }
+    send_reply(chan, pkt, MAV_RESULT_DENIED, false, gcs_sysid);
 }
 
 void AP_SarusLock::send_reply(mavlink_channel_t chan, const mavlink_secure_command_t &pkt, MAV_RESULT result,
@@ -253,16 +320,24 @@ bool AP_SarusLock::handle_secure_command(mavlink_channel_t chan, const mavlink_m
             send_reply(chan, pkt, MAV_RESULT_TEMPORARILY_REJECTED, false, msg.sysid);
             break;
         }
-        // a nonce is good for one attempt, from the station that asked for it
-        const bool nonce_fresh = nonce_valid &&
-            nonce_chan == chan && nonce_sysid == msg.sysid &&
-            AP_HAL::millis() - nonce_ms < NONCE_TIMEOUT_MS;
+        // a nonce belongs to the station that asked for it; another station's attempt does not use it up
+        if (!nonce_valid || nonce_chan != chan || nonce_sysid != msg.sysid) {
+            refuse_unlock(chan, pkt, msg.sysid, "stale request");
+            break;
+        }
+        // a nonce is good for one attempt
+        const uint32_t now = AP_HAL::millis();
+        const bool nonce_fresh = now - nonce_ms < NONCE_TIMEOUT_MS;
         nonce_valid = false;
         if (!nonce_fresh ||
             pkt.data_length != NONCE_LEN || pkt.sig_length != SIG_LEN ||
             memcmp(pkt.data, nonce, NONCE_LEN) != 0) {
-            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Sarus: unlock refused (stale request)");
-            send_reply(chan, pkt, MAV_RESULT_DENIED, false, msg.sysid);
+            refuse_unlock(chan, pkt, msg.sysid, "stale request");
+            break;
+        }
+        // each check costs main-loop time, so a failed one makes the next wait
+        if (last_failed_check_ms != 0 && now - last_failed_check_ms < RETRY_MS) {
+            refuse_unlock(chan, pkt, msg.sysid, "too soon");
             break;
         }
         SignedBlock block {};
@@ -273,8 +348,8 @@ bool AP_SarusLock::handle_secure_command(mavlink_channel_t chan, const mavlink_m
         block.gcs_sysid = msg.sysid;
         memcpy(block.nonce, nonce, NONCE_LEN);
         if (!signature_ok(block, &pkt.data[NONCE_LEN])) {
-            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Sarus: unlock refused (wrong key)");
-            send_reply(chan, pkt, MAV_RESULT_DENIED, false, msg.sysid);
+            last_failed_check_ms = MAX(AP_HAL::millis(), 1U);
+            refuse_unlock(chan, pkt, msg.sysid, "wrong key");
             break;
         }
         unlocked = true;
@@ -287,6 +362,11 @@ bool AP_SarusLock::handle_secure_command(mavlink_channel_t chan, const mavlink_m
     }
 
     case Op::LOCK:
+        // only the station holding the unlock may end it early; otherwise it lapses by itself
+        if (unlocked && (unlocked_chan != chan || unlocked_sysid != msg.sysid)) {
+            send_reply(chan, pkt, MAV_RESULT_DENIED, false, msg.sysid);
+            break;
+        }
         if (unlocked) {
             unlocked = false;
             GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Sarus: parameters locked");

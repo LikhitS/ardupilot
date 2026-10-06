@@ -8,6 +8,8 @@
 
 set -x
 set -e
+# a waf failure inside ( ... ) | tee must fail the script, not just tee's exit status
+set -o pipefail
 
 # TOOLCHAIN=i686-pc-cygwin
 TOOLCHAIN=x86_64-pc-cygwin

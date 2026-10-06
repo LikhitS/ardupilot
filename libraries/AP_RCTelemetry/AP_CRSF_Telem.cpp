@@ -14,6 +14,7 @@
 */
 
 #include "AP_RCTelemetry_config.h"
+#include <AP_SarusLock/AP_SarusLock.h>
 
 #if HAL_CRSF_TELEM_ENABLED
 
@@ -1443,6 +1444,13 @@ void AP_CRSF_Telem::process_param_write_frame(ParameterSettingsWriteFrame* write
     if (write_frame->destination != AP_RCProtocol_CRSF::CRSF_ADDRESS_FLIGHT_CONTROLLER) {
         return; // request was not for us
     }
+#if AP_SARUS_LOCK_ENABLED
+    // a transmitter menu has no ground station behind it, so it may change parameters only while unlocked
+    if (!AP::sarus_lock().local_change_allowed()) {
+        AP::sarus_lock().notify_denied("parameter change");
+        return;
+    }
+#endif
 #if OSD_PARAM_ENABLED
     AP_OSD* osd = AP::osd();
 

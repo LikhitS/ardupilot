@@ -4197,6 +4197,12 @@ void GCS_MAVLINK::handle_message(const mavlink_message_t &msg)
         handle_device_op_read(msg);
         break;
     case MAVLINK_MSG_ID_DEVICE_OP_WRITE:
+#if AP_SARUS_LOCK_ENABLED
+        if (!AP::sarus_lock().change_allowed(chan, msg.sysid)) {
+            AP::sarus_lock().notify_denied("device write");
+            break;
+        }
+#endif
         handle_device_op_write(msg);
         break;
 #endif
@@ -4205,9 +4211,17 @@ void GCS_MAVLINK::handle_message(const mavlink_message_t &msg)
         handle_timesync(msg);
         break;
 #if HAL_LOGGING_ENABLED
+    case MAVLINK_MSG_ID_LOG_ERASE:
+#if AP_SARUS_LOCK_ENABLED
+        if (!AP::sarus_lock().change_allowed(chan, msg.sysid)) {
+            AP::sarus_lock().notify_denied("log erase");
+            break;
+        }
+#endif
+        AP::logger().handle_mavlink_msg(*this, msg);
+        break;
     case MAVLINK_MSG_ID_LOG_REQUEST_LIST:
     case MAVLINK_MSG_ID_LOG_REQUEST_DATA:
-    case MAVLINK_MSG_ID_LOG_ERASE:
     case MAVLINK_MSG_ID_LOG_REQUEST_END:
     case MAVLINK_MSG_ID_REMOTE_LOG_BLOCK_STATUS:
         AP::logger().handle_mavlink_msg(*this, msg);
@@ -4306,6 +4320,13 @@ void GCS_MAVLINK::handle_message(const mavlink_message_t &msg)
 
 #if AP_MAVLINK_MSG_SERIAL_CONTROL_ENABLED
     case MAVLINK_MSG_ID_SERIAL_CONTROL:
+#if AP_SARUS_LOCK_ENABLED
+        // the shell and GPS passthrough can change the setup
+        if (!AP::sarus_lock().change_allowed(chan, msg.sysid)) {
+            AP::sarus_lock().notify_denied("serial passthrough");
+            break;
+        }
+#endif
         handle_serial_control(msg);
         break;
 #endif

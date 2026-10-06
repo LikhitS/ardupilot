@@ -9,9 +9,18 @@
   The aircraft holds only public keys, so reading them out of the firmware gives nothing.
 
   An unlock belongs to the link and ground station that made it. It ends on reboot, on a
-  LOCK request, or when that station has been silent for LINK_TIMEOUT_MS while disarmed.
-  Unlocking is only accepted while disarmed, because the signature check takes several
-  milliseconds of main-loop time.
+  LOCK request from that station, or when that station has been silent for LINK_TIMEOUT_MS
+  while disarmed. Unlocking is only accepted while disarmed, because the signature check
+  takes several milliseconds of main-loop time, and after a failed check the next one waits
+  RETRY_MS.
+
+  Without MAVLink signing, a station is known only by its link and system id. Another
+  station on the same link using the same system id shares the unlock, and a station that
+  can pose as an aircraft to the owner's ground station could relay the owner's signature.
+  Turn on MAVLink signing on links that others can reach.
+
+  Paths that do not come from a ground station (FrSky and CRSF parameter menus on the
+  transmitter) may change parameters only while some station holds an unlock.
 
   Firmware built without any key leaves the lock off and behaves like ArduPilot.
  */
@@ -52,6 +61,7 @@ public:
     static constexpr uint8_t SIG_LEN = 64;
     static constexpr uint32_t NONCE_TIMEOUT_MS = 30000;
     static constexpr uint32_t LINK_TIMEOUT_MS = 10000;
+    static constexpr uint32_t RETRY_MS = 250;
 
     // true if a SECURE_COMMAND carried a Sarus operation and was handled here
     bool handle_secure_command(mavlink_channel_t chan, const mavlink_message_t &msg);
@@ -64,6 +74,9 @@ public:
 
     // may this station run this command now? Only setup commands are restricted.
     bool command_allowed(uint16_t command, float param1, mavlink_channel_t chan, uint8_t sysid);
+
+    // may a path with no ground station behind it (transmitter menus) change parameters now?
+    bool local_change_allowed();
 
     // tell the pilot a change was refused, at most once every two seconds
     void notify_denied(const char *what);
@@ -90,6 +103,8 @@ private:
     bool unlocked_for(mavlink_channel_t chan, uint8_t sysid);
     void expire_unlock();
     void make_nonce();
+    void refuse_unlock(mavlink_channel_t chan, const mavlink_secure_command_t &pkt, uint8_t gcs_sysid,
+                       const char *why);
     bool signature_ok(const SignedBlock &block, const uint8_t sig[SIG_LEN]) const;
     void send_reply(mavlink_channel_t chan, const mavlink_secure_command_t &pkt, MAV_RESULT result,
                     bool with_nonce, uint8_t gcs_sysid);
@@ -108,6 +123,12 @@ private:
     uint8_t nonce_sysid;
 
     uint32_t last_denied_text_ms;
+    uint32_t last_refused_text_ms;
+    uint32_t last_failed_check_ms;
+
+    // packet arrival times, folded in as they come; part of every nonce
+    uint8_t entropy[32];
+    uint8_t entropy_pos;
 };
 
 namespace AP {
