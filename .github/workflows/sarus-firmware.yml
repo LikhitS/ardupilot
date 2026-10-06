@@ -38,28 +38,20 @@ jobs:
           export PATH="/opt/gcc-arm-none-eabi-10/bin:/github/home/.local/bin:$PATH"
           # an 8 KB embedded-defaults area for the owner's parameter set wherever it fits; a board whose flash is
           # too full (CubeOrangePlus on 4.6.3) builds without it, and cannot take owner defaults on this line
-          # ArduPilot 4.6 fills CubeOrangePlus's flash with Copter; with the lock it no longer fits, so on this line that
-          # board gets Plane and Rover only (Copter on CubeOrangePlus comes from the 4.7 line)
-          VEH="plane copter rover"; FILES="arduplane arducopter ardurover"
-          if [ "${{ matrix.board }}" = CubeOrangePlus ]; then
-            VEH="plane rover"; FILES="arduplane ardurover"
-            echo "::notice::CubeOrangePlus on 4.6.3: Copter is not built (flash full); use the 4.7.1 line for Copter"
-          fi
           EMB=1
-          if ! { ./waf configure --board ${{ matrix.board }} --define=AP_PARAM_MAX_EMBEDDED_PARAM=8192 && ./waf $VEH; }; then
+          if ! { ./waf configure --board ${{ matrix.board }} --define=AP_PARAM_MAX_EMBEDDED_PARAM=8192 && ./waf plane copter rover; }; then
             echo "::warning::${{ matrix.board }}: no room for the 8 KB embedded-defaults area; built without it"
             EMB=0
             ./waf configure --board ${{ matrix.board }}
-            ./waf $VEH
+            ./waf plane copter rover
           fi
           mkdir -p out/${{ matrix.board }}
-          for f in $FILES; do cp "build/${{ matrix.board }}/bin/$f.apj" out/${{ matrix.board }}/; done
+          for f in arduplane arducopter ardurover; do cp "build/${{ matrix.board }}/bin/$f.apj" out/${{ matrix.board }}/; done
           # the owner's parameter set becomes the firmware's defaults (Tools/sarus/defaults/<vehicle>.parm, optional),
           # merged with any defaults the board ships with
           for v in plane:arduplane copter:arducopter rover:ardurover; do
             f=Tools/sarus/defaults/${v%%:*}.parm
             [ -f "$f" ] || continue
-            [ -f "out/${{ matrix.board }}/${v##*:}.apj" ] || continue
             [ "$EMB" = 1 ] || { echo "${{ matrix.board }} has no room for the owner's defaults ($f)"; exit 1; }
             python3 Tools/sarus/embed_defaults.py "$f" --apj out/${{ matrix.board }}/${v##*:}.apj
           done
@@ -75,7 +67,6 @@ jobs:
           # the firmware must identify itself as Sarus and keep the ArduPilot prefix ground stations rely on
           for v in ArduPlane:arduplane ArduCopter:arducopter ArduRover:ardurover; do
             name=${v%%:*}; file=${v##*:}
-            [ -f "build/${{ matrix.board }}/bin/$file" ] || continue
             found=$(strings "build/${{ matrix.board }}/bin/$file" | grep -o "$name V[0-9.]* Sarus-[0-9]*" | head -1)
             [ -n "$found" ] || { echo "firmware string missing in $file"; exit 1; }
             echo "$file reports: $found"
