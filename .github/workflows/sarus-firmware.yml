@@ -25,7 +25,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        board: [CubeOrange, CubeOrangePlus, Pixhawk6X, Pixhawk6C, Pixhawk1, fmuv3, MatekH743]
+        # CubeOrangePlus is not on the 4.6 line: ArduPilot 4.6.3 leaves almost no flash there, and the lock's signature
+        # check (about 13 KB) does not fit; CubeOrangePlus gets Sarus firmware from the 4.7 line
+        board: [CubeOrange, Pixhawk6X, Pixhawk6C, Pixhawk1, fmuv3, MatekH743]
     steps:
       - uses: actions/checkout@v4
         with:
