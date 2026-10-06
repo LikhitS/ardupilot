@@ -52,7 +52,7 @@ jobs:
           printf 'TECS_CLMB_MAX 6.5\nCOMPASS_OFS_X 9\n' > /tmp/sample.parm
           cp out/${{ matrix.board }}/arduplane.apj /tmp/sample.apj
           python3 Tools/sarus/embed_defaults.py /tmp/sample.parm --apj /tmp/sample.apj
-          python3 Tools/scripts/apj_tool.py /tmp/sample.apj > /tmp/sample.txt
+          python3 Tools/scripts/apj_tool.py --show /tmp/sample.apj > /tmp/sample.txt
           grep -q "TECS_CLMB_MAX 6.5" /tmp/sample.txt || { echo "embedded defaults not written"; exit 1; }
           if grep -q "COMPASS_OFS_X" /tmp/sample.txt; then echo "a calibration value was embedded"; exit 1; fi
           # the firmware must identify itself as Sarus and keep the ArduPilot prefix ground stations rely on
