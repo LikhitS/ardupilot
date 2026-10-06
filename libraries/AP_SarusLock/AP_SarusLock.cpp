@@ -172,8 +172,8 @@ void AP_SarusLock::make_nonce()
     uint8_t uid_len = sizeof(seed.unique_id);
     hal.util->get_system_id_unformatted(seed.unique_id, uid_len);
     seed.time_us = AP_HAL::micros64();
-    for (uint32_t &e : seed.extra) {
-        e = (uint32_t(get_random16()) << 16) | get_random16();
+    for (uint8_t i = 0; i < ARRAY_SIZE(seed.extra); i++) {
+        seed.extra[i] = (uint32_t(get_random16()) << 16) | get_random16();
     }
     crypto_blake2b_general(nonce, sizeof(nonce), nullptr, 0, (const uint8_t *)&seed, sizeof(seed));
     crypto_wipe(&seed, sizeof(seed));
