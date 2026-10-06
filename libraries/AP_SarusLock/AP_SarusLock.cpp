@@ -227,7 +227,9 @@ void AP_SarusLock::make_nonce()
     seed.time_us = AP_HAL::micros64();
     memcpy(seed.pool, entropy, sizeof(seed.pool));
     memcpy(seed.previous, nonce, sizeof(seed.previous));
-    AP_Param::get("STAT_BOOTCNT", seed.boots);
+    float boots = 0;
+    AP_Param::get("STAT_BOOTCNT", boots); // a local: a packed field cannot bind to float&
+    seed.boots = boots;
     for (uint8_t i = 0; i < ARRAY_SIZE(seed.extra); i++) {
         seed.extra[i] = (uint32_t(get_random16()) << 16) | get_random16();
     }
