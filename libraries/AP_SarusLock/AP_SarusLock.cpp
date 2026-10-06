@@ -145,11 +145,12 @@ bool AP_SarusLock::command_allowed(uint16_t command, float param1, mavlink_chann
 
 void AP_SarusLock::notify_denied(const char *what)
 {
+    // zero means never sent, so the first refusal is reported even in the first seconds after boot
     const uint32_t now = AP_HAL::millis();
-    if (now - last_denied_text_ms < 2000) {
+    if (last_denied_text_ms != 0 && now - last_denied_text_ms < 2000) {
         return;
     }
-    last_denied_text_ms = now;
+    last_denied_text_ms = MAX(now, 1U);
     GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Sarus: locked, %s refused", what);
 }
 
