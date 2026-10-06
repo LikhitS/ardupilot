@@ -26,6 +26,7 @@
 #include <AP_Filesystem/AP_Filesystem.h>
 #include <AP_HAL/utility/sparse-endian.h>
 #include <AP_BoardConfig/AP_BoardConfig.h>
+#include <AP_SarusLock/AP_SarusLock.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -215,6 +216,16 @@ void GCS_MAVLINK::ftp_worker(void) {
             // if we have an open file and the session isn't right
             // then reject. This prevents IO on the wrong file
             ftp_error(reply, FTP_ERROR::InvalidSession);
+#if AP_SARUS_LOCK_ENABLED
+        } else if ((request.opcode == FTP_OP::OpenFileWO || request.opcode == FTP_OP::CreateFile ||
+                    request.opcode == FTP_OP::WriteFile || request.opcode == FTP_OP::CreateDirectory ||
+                    request.opcode == FTP_OP::RemoveDirectory || request.opcode == FTP_OP::RemoveFile ||
+                    request.opcode == FTP_OP::Rename || request.opcode == FTP_OP::TruncateFile) &&
+                   !AP::sarus_lock().change_allowed(request.chan, request.sysid)) {
+            // writing files can load parameters (@PARAM) or scripts, so it needs an unlock; reading stays open
+            AP::sarus_lock().notify_denied("file write");
+            ftp_error(reply, FTP_ERROR::FileProtected);
+#endif
         } else {
             if (ftp.fd != -1 &&
                 request.session != ftp.current_session &&

@@ -22,6 +22,7 @@
 #include <AP_HAL/AP_HAL.h>
 
 #include "GCS.h"
+#include <AP_SarusLock/AP_SarusLock.h>
 #include <AP_Logger/AP_Logger.h>
 #include <AP_BoardConfig/AP_BoardConfig.h>
 
@@ -280,6 +281,15 @@ void GCS_MAVLINK::handle_param_set(const mavlink_message_t &msg)
     }
 
     float old_value = vp->cast_to_float(var_type);
+
+#if AP_SARUS_LOCK_ENABLED
+    if (!AP::sarus_lock().change_allowed(chan, msg.sysid)) {
+        // tell the station, and send back the value the aircraft keeps
+        AP::sarus_lock().notify_denied("parameter change");
+        send_parameter_value(key, var_type, old_value);
+        return;
+    }
+#endif
 
     if (!vp->allow_set_via_mavlink(parameter_flags)) {
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Param write denied (%s)", key);

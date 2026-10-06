@@ -1,0 +1,216 @@
+name: Sarus firmware
+
+# Builds Sarus firmware (ArduPilot Plane, Copter and Rover with Sarus identity) for the Sarus boards on every
+# push to a sarus-* branch, plus the Windows SITL simulators used by the Sarus Operation Planner tests.
+# A tag sarus-v<version>-S<build> (stable) or sarus-v<version>-S<build>-beta publishes a GitHub release with
+# the firmware files and updates the firmware list that Sarus Operation Planner reads:
+#   https://raw.githubusercontent.com/<owner>/ardupilot/sarus-manifest/manifest.json
+on:
+  push:
+    branches: ['sarus-*']
+    tags: ['sarus-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sarus-firmware-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  boards:
+    runs-on: ubuntu-22.04
+    container: ardupilot/ardupilot-dev-chibios:v0.1.3
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [CubeOrange, CubeOrangePlus, Pixhawk6X, Pixhawk6C, Pixhawk1, fmuv3, MatekH743]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build Plane, Copter and Rover for ${{ matrix.board }}
+        shell: bash
+        run: |
+          set -e
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          export PATH="/opt/gcc-arm-none-eabi-10/bin:/github/home/.local/bin:$PATH"
+          ./waf configure --board ${{ matrix.board }}
+          ./waf plane copter rover
+          mkdir -p out/${{ matrix.board }}
+          for f in arduplane arducopter ardurover; do cp "build/${{ matrix.board }}/bin/$f.apj" out/${{ matrix.board }}/; done
+          # the firmware must identify itself as Sarus and keep the ArduPilot prefix ground stations rely on
+          for v in ArduPlane:arduplane ArduCopter:arducopter ArduRover:ardurover; do
+            name=${v%%:*}; file=${v##*:}
+            found=$(strings "build/${{ matrix.board }}/bin/$file" | grep -o "$name V[0-9.]* Sarus-[0-9]*" | head -1)
+            [ -n "$found" ] || { echo "firmware string missing in $file"; exit 1; }
+            echo "$file reports: $found"
+          done
+          ls -la out/${{ matrix.board }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fw-${{ matrix.board }}
+          path: out/
+
+  lock-tests:
+    # the parameter lock: signature check, key list, and the lock itself on the simulator
+    runs-on: ubuntu-22.04
+    container: ardupilot/ardupilot-dev-base:v0.1.3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Ed25519 check and key list
+        shell: bash
+        run: |
+          set -e
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          python3 -m pip install --progress-bar off cryptography pymavlink
+          g++ -std=gnu++11 -O2 -Wall -Werror=shadow -I libraries Tools/sarus/tests/ed25519_check.cpp \
+            libraries/AP_CheckFirmware/monocypher.cpp libraries/AP_SarusLock/monocypher_ed25519.cpp -o /tmp/ed25519_check
+          /tmp/ed25519_check
+          python3 Tools/sarus/lock_keys.py test
+          python3 Tools/sarus/lock_keys.py header
+          git diff --exit-code libraries/AP_SarusLock/AP_SarusLock_keys.h || { echo "AP_SarusLock_keys.h does not match sarus-lock-keys.json; run Tools/sarus/lock_keys.py header"; exit 1; }
+      - name: Lock on the simulator, test key
+        shell: bash
+        run: |
+          set -e
+          ./waf configure --board sitl --define=AP_SARUS_LOCK_TEST_KEY=1
+          ./waf plane
+          mkdir -p /tmp/sitl-key && cd /tmp/sitl-key
+          "$GITHUB_WORKSPACE/build/sitl/bin/arduplane" -w --model plane --speedup 1 \
+            --defaults "$GITHUB_WORKSPACE/Tools/autotest/models/plane.parm" -I0 > sitl.log 2>&1 &
+          sleep 15
+          python3 "$GITHUB_WORKSPACE/Tools/sarus/tests/lock_sitl_test.py" --reboot
+          kill %1 || true
+      - name: Without a key nothing is locked, simulator
+        shell: bash
+        run: |
+          set -e
+          ./waf configure --board sitl
+          ./waf plane
+          mkdir -p /tmp/sitl-nokey && cd /tmp/sitl-nokey
+          "$GITHUB_WORKSPACE/build/sitl/bin/arduplane" -w --model plane --speedup 1 \
+            --defaults "$GITHUB_WORKSPACE/Tools/autotest/models/plane.parm" -I0 > sitl.log 2>&1 &
+          sleep 15
+          python3 "$GITHUB_WORKSPACE/Tools/sarus/tests/lock_sitl_test.py" --expect-inactive
+          kill %1 || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: lock-tests-sitl-logs
+          path: /tmp/sitl-*/
+
+  sitl-windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # locktest carries the public simulator test key, for testing the lock with Sarus Operation Planner
+        variant: [release, locktest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: cygwin/cygwin-install-action@v6
+        with:
+          packages: cygwin64 gcc-g++=10.2.0-1 ccache python39 python39-future python39-lxml python39-pip python39-setuptools python39-wheel git procps gettext
+          add-to-path: false
+      - name: Prepare Python environment
+        env:
+          PATH: /usr/bin:$(cygpath ${SYSTEMROOT})/system32
+        shell: C:\cygwin\bin\bash.exe -eo pipefail '{0}'
+        # Cygwin now also installs python 3.12 as a dependency and points python3 at it; ArduPilot's build pins
+        # 3.9 (the python39-* packages above), so make python/python3 mean 3.9 for this job.
+        run: >-
+          mkdir -p /usr/local/bin &&
+          ln -sf /usr/bin/python3.9 /usr/local/bin/python3 &&
+          ln -sf /usr/bin/python3.9 /usr/local/bin/python &&
+          /usr/local/bin/python3 --version &&
+          /usr/local/bin/python3 -m pip install --progress-bar off empy==3.3.4 pexpect &&
+          /usr/local/bin/python3 -m pip install --progress-bar off dronecan --upgrade
+      - name: Build Windows SITL
+        env:
+          PATH: /usr/bin:$(cygpath ${SYSTEMROOT})/system32
+          SARUS_WAF_DEFINES: ${{ matrix.variant == 'locktest' && '--define=AP_SARUS_LOCK_TEST_KEY=1' || '' }}
+        shell: C:\cygwin\bin\bash.exe -eo pipefail '{0}'
+        run: >-
+          CYGPATH_GITHUB_WORKSPACE=$(cygpath -u "$GITHUB_WORKSPACE") &&
+          git config --global --add safe.directory "${CYGPATH_GITHUB_WORKSPACE}" &&
+          export PATH=/usr/local/bin:/usr/bin:$(cygpath ${SYSTEMROOT})/system32 &&
+          Tools/scripts/cygwin_build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.variant == 'locktest' && 'sitl-windows-locktest' || 'sitl-windows' }}
+          path: artifacts
+
+  release:
+    needs: [boards, sitl-windows, lock-tests]
+    if: startsWith(github.ref, 'refs/tags/sarus-v')
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: The release must carry the owner's lock key
+        shell: bash
+        run: |
+          grep -Eq '^#define AP_SARUS_LOCK_OWNER_KEY_COUNT [1-9]' libraries/AP_SarusLock/AP_SarusLock_keys.h || {
+            echo "No owner key in AP_SarusLock_keys.h: this release would ship without the parameter lock."
+            echo "Run Tools/sarus/lock_keys.py setup on the owner's PC first."; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: fw-*
+          path: fw
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: sitl-windows
+          path: sitl-windows
+      - name: Firmware files and list
+        id: meta
+        shell: bash
+        run: |
+          set -e
+          tag="${GITHUB_REF_NAME}"                       # sarus-v4.7.1-S1 or sarus-v4.7.1-S1-beta
+          [[ "$tag" =~ ^sarus-v([0-9]+\.[0-9]+\.[0-9]+)-S([0-9]+)(-beta)?$ ]] || { echo "bad tag $tag"; exit 1; }
+          version=${BASH_REMATCH[1]}; build=${BASH_REMATCH[2]}
+          if [ -n "${BASH_REMATCH[3]}" ]; then rtype=beta; else rtype=stable; fi
+          python3 Tools/sarus/make_manifest.py --fwdir fw --outdir out --version "$version" --build "$build" \
+            --release-type "$rtype" --git-sha "$GITHUB_SHA" \
+            --asset-base "https://github.com/${GITHUB_REPOSITORY}/releases/download/$tag"
+          (cd sitl-windows && zip -qr "../out/assets/Sarus-SITL-Windows-$version-S$build.zip" .)
+          cp out/manifest-release.json out/assets/manifest-release.json
+          echo "rtype=$rtype" >> "$GITHUB_OUTPUT"
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/assets/*
+          prerelease: ${{ steps.meta.outputs.rtype == 'beta' }}
+      - name: Update the firmware list read by Sarus Operation Planner
+        shell: bash
+        run: |
+          set -e
+          git config user.name "Sarus firmware CI"
+          git config user.email "LikhitS@users.noreply.github.com"
+          if git ls-remote --exit-code origin sarus-manifest >/dev/null; then
+            git fetch --depth 1 origin sarus-manifest && git switch -c sarus-manifest FETCH_HEAD
+          else
+            git switch --orphan sarus-manifest && git rm -rf --quiet . || true
+          fi
+          python3 - <<'EOF'
+          import json, os
+          new = json.load(open('out/manifest-release.json'))['firmware']
+          kind = new[0]['mav-firmware-version-type']
+          line = (new[0]['mav-firmware-version-major'], new[0]['mav-firmware-version-minor'])
+          old = json.load(open('manifest.json'))['firmware'] if os.path.exists('manifest.json') else []
+          # one current release per release type and version line, so the 4.6 and 4.7 based Sarus
+          # builds are both offered; Install Firmware asks which one when both match a board
+          keep = [e for e in old if e['mav-firmware-version-type'] != kind or
+                  (e['mav-firmware-version-major'], e['mav-firmware-version-minor']) != line]
+          json.dump({'format-version': '1.0.0', 'firmware': keep + new}, open('manifest.json', 'w'), indent=1)
+          print('manifest: %d entries (%d new %s)' % (len(keep) + len(new), len(new), kind))
+          EOF
+          git add manifest.json
+          git commit -m "Firmware list for ${GITHUB_REF_NAME}"
+          git push origin sarus-manifest

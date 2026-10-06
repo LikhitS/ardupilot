@@ -110,6 +110,7 @@
 extern AP_IOMCU iomcu;
 #endif
 
+#include <AP_SarusLock/AP_SarusLock.h>
 #include <ctype.h>
 
 extern const AP_HAL::HAL& hal;
@@ -1798,6 +1799,9 @@ void GCS_MAVLINK::packetReceived(const mavlink_status_t &status,
     if (msg.msgid != MAVLINK_MSG_ID_RADIO && msg.msgid != MAVLINK_MSG_ID_RADIO_STATUS) {
         mavlink_active |= (1U<<(chan-MAVLINK_COMM_0));
     }
+#if AP_SARUS_LOCK_ENABLED
+    AP::sarus_lock().note_traffic(chan, msg.sysid);
+#endif
     const auto mavlink_protocol = uartstate->get_protocol();
     if (!(status.flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1) &&
         (status.flags & MAVLINK_STATUS_FLAG_OUT_MAVLINK1) &&
@@ -4431,6 +4435,14 @@ void GCS_MAVLINK::handle_message(const mavlink_message_t &msg)
 
 #if OSD_PARAM_ENABLED
     case MAVLINK_MSG_ID_OSD_PARAM_CONFIG:
+#if AP_SARUS_LOCK_ENABLED
+        if (!AP::sarus_lock().change_allowed(chan, msg.sysid)) {
+            AP::sarus_lock().notify_denied("OSD setup");
+            break;
+        }
+#endif
+        handle_osd_param_config(msg);
+        break;
     case MAVLINK_MSG_ID_OSD_PARAM_SHOW_CONFIG:
         handle_osd_param_config(msg);
         break;
@@ -4478,10 +4490,17 @@ void GCS_MAVLINK::handle_message(const mavlink_message_t &msg)
         break;
 #endif
 
-#if AP_SIGNED_FIRMWARE
+#if AP_SIGNED_FIRMWARE || AP_SARUS_LOCK_ENABLED
     case MAVLINK_MSG_ID_SECURE_COMMAND:
     case MAVLINK_MSG_ID_SECURE_COMMAND_REPLY:
+#if AP_SARUS_LOCK_ENABLED
+        if (AP::sarus_lock().handle_secure_command(chan, msg)) {
+            break;
+        }
+#endif
+#if AP_SIGNED_FIRMWARE
         AP_CheckFirmware::handle_msg(chan, msg);
+#endif
         break;
 #endif
 
@@ -5130,6 +5149,12 @@ MAV_RESULT GCS_MAVLINK::try_command_long_as_command_int(const mavlink_command_lo
     mavlink_command_int_t command_int;
     convert_COMMAND_LONG_to_COMMAND_INT(packet, command_int, frame);
 
+#if AP_SARUS_LOCK_ENABLED
+    if (!AP::sarus_lock().command_allowed(command_int.command, command_int.param1, chan, msg.sysid)) {
+        return MAV_RESULT_DENIED;
+    }
+#endif
+
     return handle_command_int_packet(command_int, msg);
 }
 
@@ -5650,7 +5675,12 @@ void GCS_MAVLINK::handle_command_int(const mavlink_message_t &msg)
 
     hal.util->persistent_data.last_mavlink_cmd = packet.command;
 
+#if AP_SARUS_LOCK_ENABLED
+    const MAV_RESULT result = AP::sarus_lock().command_allowed(packet.command, packet.param1, chan, msg.sysid) ?
+        handle_command_int_packet(packet, msg) : MAV_RESULT_DENIED;
+#else
     const MAV_RESULT result = handle_command_int_packet(packet, msg);
+#endif
 
     // send ACK or NAK
     mavlink_msg_command_ack_send(chan, packet.command, result,
