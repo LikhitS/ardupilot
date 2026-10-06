@@ -81,7 +81,7 @@ jobs:
           ./waf plane
           mkdir -p /tmp/sitl-key && cd /tmp/sitl-key
           "$GITHUB_WORKSPACE/build/sitl/bin/arduplane" -w --model plane --speedup 1 \
-            --defaults "$GITHUB_WORKSPACE/Tools/autotest/default_params/plane.parm" -I0 > sitl.log 2>&1 &
+            --defaults "$GITHUB_WORKSPACE/Tools/autotest/models/plane.parm" -I0 > sitl.log 2>&1 &
           sleep 15
           python3 "$GITHUB_WORKSPACE/Tools/sarus/tests/lock_sitl_test.py" --reboot
           kill %1 || true
@@ -93,7 +93,7 @@ jobs:
           ./waf plane
           mkdir -p /tmp/sitl-nokey && cd /tmp/sitl-nokey
           "$GITHUB_WORKSPACE/build/sitl/bin/arduplane" -w --model plane --speedup 1 \
-            --defaults "$GITHUB_WORKSPACE/Tools/autotest/default_params/plane.parm" -I0 > sitl.log 2>&1 &
+            --defaults "$GITHUB_WORKSPACE/Tools/autotest/models/plane.parm" -I0 > sitl.log 2>&1 &
           sleep 15
           python3 "$GITHUB_WORKSPACE/Tools/sarus/tests/lock_sitl_test.py" --expect-inactive
           kill %1 || true
@@ -202,9 +202,12 @@ jobs:
           import json, os
           new = json.load(open('out/manifest-release.json'))['firmware']
           kind = new[0]['mav-firmware-version-type']
+          line = (new[0]['mav-firmware-version-major'], new[0]['mav-firmware-version-minor'])
           old = json.load(open('manifest.json'))['firmware'] if os.path.exists('manifest.json') else []
-          # one current release per release type, like ArduPilot's own list
-          keep = [e for e in old if e['mav-firmware-version-type'] != kind]
+          # one current release per release type and version line, so the 4.6 and 4.7 based Sarus
+          # builds are both offered; Install Firmware asks which one when both match a board
+          keep = [e for e in old if e['mav-firmware-version-type'] != kind or
+                  (e['mav-firmware-version-major'], e['mav-firmware-version-minor']) != line]
           json.dump({'format-version': '1.0.0', 'firmware': keep + new}, open('manifest.json', 'w'), indent=1)
           print('manifest: %d entries (%d new %s)' % (len(keep) + len(new), len(new), kind))
           EOF
