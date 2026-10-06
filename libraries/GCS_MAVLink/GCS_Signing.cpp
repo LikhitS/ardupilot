@@ -20,6 +20,7 @@
 #if HAL_GCS_ENABLED
 
 #include "GCS.h"
+#include <AP_SarusLock/AP_SarusLock.h>
 
 #if AP_MAVLINK_SIGNING_ENABLED
 
@@ -77,6 +78,14 @@ void GCS_MAVLINK::handle_setup_signing(const mavlink_message_t &msg) const
         send_text(MAV_SEVERITY_WARNING, "ERROR: Won't setup signing when armed");
         return;
     }
+
+#if AP_SARUS_LOCK_ENABLED
+    // a new signing key would shut out other stations, so it is a setup change
+    if (!AP::sarus_lock().change_allowed(chan, msg.sysid)) {
+        AP::sarus_lock().notify_denied("signing setup");
+        return;
+    }
+#endif
 
     // decode
     mavlink_setup_signing_t packet;

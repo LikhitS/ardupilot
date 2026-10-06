@@ -25,7 +25,8 @@ mkdir artifacts
 WAF_OPTIONS="-j8"
 
 (
-    python ./waf --color yes --toolchain $TOOLCHAIN --board sitl configure 2>&1
+    # Sarus: SARUS_WAF_DEFINES adds --define options, such as the parameter-lock test key
+    python ./waf --color yes --toolchain $TOOLCHAIN --board sitl configure ${SARUS_WAF_DEFINES:-} 2>&1
     python ./waf plane $WAF_OPTIONS 2>&1
     python ./waf copter $WAF_OPTIONS 2>&1
     python ./waf heli $WAF_OPTIONS 2>&1

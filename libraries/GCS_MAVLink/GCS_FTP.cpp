@@ -28,6 +28,7 @@
 #include <AP_Filesystem/AP_Filesystem.h>
 #include <AP_HAL/utility/sparse-endian.h>
 #include <AP_BoardConfig/AP_BoardConfig.h>
+#include <AP_SarusLock/AP_SarusLock.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -318,6 +319,28 @@ bool GCS_FTP::Session::handle_request(Transaction &request, Transaction &reply)
     }
 
     const uint32_t now = AP_HAL::millis();
+
+#if AP_SARUS_LOCK_ENABLED
+    // writing files can load parameters (@PARAM) or scripts, so it needs an unlock; reading stays open
+    switch (request.opcode) {
+    case FTP_OP::OpenFileWO:
+    case FTP_OP::CreateFile:
+    case FTP_OP::WriteFile:
+    case FTP_OP::CreateDirectory:
+    case FTP_OP::RemoveDirectory:
+    case FTP_OP::RemoveFile:
+    case FTP_OP::Rename:
+    case FTP_OP::TruncateFile:
+        if (!AP::sarus_lock().change_allowed(request.chan, request.sysid)) {
+            AP::sarus_lock().notify_denied("file write");
+            GCS_FTP::error(reply, FTP_ERROR::FileProtected);
+            return false;
+        }
+        break;
+    default:
+        break;
+    }
+#endif
 
     // dispatch the command as needed
     switch (request.opcode) {
