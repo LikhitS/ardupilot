@@ -36,19 +36,25 @@ jobs:
           set -e
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           export PATH="/opt/gcc-arm-none-eabi-10/bin:/github/home/.local/bin:$PATH"
-          ./waf configure --board ${{ matrix.board }}
+          # an 8 KB embedded-defaults area on every board, so the owner's parameter set can always be added
+          ./waf configure --board ${{ matrix.board }} --define=AP_PARAM_MAX_EMBEDDED_PARAM=8192
           ./waf plane copter rover
           mkdir -p out/${{ matrix.board }}
           for f in arduplane arducopter ardurover; do cp "build/${{ matrix.board }}/bin/$f.apj" out/${{ matrix.board }}/; done
-          # the owner's parameter set becomes the firmware's defaults (Tools/sarus/defaults/<vehicle>.parm, optional)
+          # the owner's parameter set becomes the firmware's defaults (Tools/sarus/defaults/<vehicle>.parm, optional),
+          # merged with any defaults the board ships with
           for v in plane:arduplane copter:arducopter rover:ardurover; do
             f=Tools/sarus/defaults/${v%%:*}.parm
             [ -f "$f" ] || continue
-            python3 Tools/sarus/embed_defaults.py "$f" /tmp/${v%%:*}.parm
-            python3 Tools/scripts/apj_tool.py --set-file /tmp/${v%%:*}.parm out/${{ matrix.board }}/${v##*:}.apj
+            python3 Tools/sarus/embed_defaults.py "$f" --apj out/${{ matrix.board }}/${v##*:}.apj
           done
-          # every board must have room for embedded defaults, so the owner's parameter set can always be added
-          for f in arduplane arducopter ardurover; do python3 Tools/scripts/apj_tool.py out/${{ matrix.board }}/$f.apj > /dev/null; done
+          # prove the merge works on this board, on a scratch copy: a normal value goes in, a calibration does not
+          printf 'TECS_CLMB_MAX 6.5\nCOMPASS_OFS_X 9\n' > /tmp/sample.parm
+          cp out/${{ matrix.board }}/arduplane.apj /tmp/sample.apj
+          python3 Tools/sarus/embed_defaults.py /tmp/sample.parm --apj /tmp/sample.apj
+          python3 Tools/scripts/apj_tool.py /tmp/sample.apj > /tmp/sample.txt
+          grep -q "TECS_CLMB_MAX 6.5" /tmp/sample.txt || { echo "embedded defaults not written"; exit 1; }
+          if grep -q "COMPASS_OFS_X" /tmp/sample.txt; then echo "a calibration value was embedded"; exit 1; fi
           # the firmware must identify itself as Sarus and keep the ArduPilot prefix ground stations rely on
           for v in ArduPlane:arduplane ArduCopter:arducopter ArduRover:ardurover; do
             name=${v%%:*}; file=${v##*:}
