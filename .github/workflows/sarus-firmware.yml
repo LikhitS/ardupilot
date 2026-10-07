@@ -171,7 +171,7 @@ jobs:
           [[ "$tag" =~ ^sarus-v(([0-9]+)\.([0-9]+)\.[0-9]+)-S([0-9]+)(-beta)?$ ]] || { echo "bad tag $tag"; exit 1; }
           version=${BASH_REMATCH[1]}; line="${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"; build=${BASH_REMATCH[4]}
           # a build number only goes up on its line, so a re-run or an old tag cannot roll aircraft back
-          others=$(git ls-remote --tags origin "refs/tags/sarus-v$line.*" | grep -v "refs/tags/$tag\$" | sed -nE 's#.*refs/tags/sarus-v[0-9.]+-S([0-9]+)(-beta)?$#\1#p' | sort -n | tail -1)
+          others=$(git ls-remote --tags origin "refs/tags/sarus-v$line.*" | { grep -v "refs/tags/$tag\$" || true; } | sed -nE 's#.*refs/tags/sarus-v[0-9.]+-S([0-9]+)(-beta)?$#\1#p' | sort -n | tail -1)
           if [ -n "$others" ] && [ "$build" -le "$others" ]; then echo "S$build is not newer than S$others on the $line line"; exit 1; fi
           python3 - "$version" "$build" <<'EOF'
           import base64, glob, json, re, sys, zlib
