@@ -5,7 +5,7 @@
 # Every board gets ArduPilot's own feature set, plus an 8 KB embedded-defaults area for the owner's parameter
 # set wherever it fits. The only exceptions are listed in the "per-board choices" block below, each with its
 # reason; a board without an exception is built exactly as ArduPilot builds it.
-set -e
+set -eo pipefail
 B=$1
 OUT=$2
 LINE=$(grep -o 'V4\.[0-9]*' ArduPlane/version.h | head -1)
@@ -32,9 +32,11 @@ declare -A EMB
 # build a group of vehicles with the same extra options; record whether the defaults area fitted
 build_group() {
     local vehicles=$1 extra=$2
-    if ./waf configure --board "$B" --define=AP_PARAM_MAX_EMBEDDED_PARAM=8192 $extra && ./waf $vehicles; then
+    if ./waf configure --board "$B" --define=AP_PARAM_MAX_EMBEDDED_PARAM=8192 $extra && ./waf $vehicles 2>&1 | tee /tmp/waf.log; then
         for v in $vehicles; do EMB[$v]=1; done
     else
+        # only a full flash may drop the defaults area; any other error fails the build
+        grep -Eq "overflowed|will not fit|cannot move location counter" /tmp/waf.log || { echo "$B ($vehicles): build failed"; exit 1; }
         echo "::warning::$B ($vehicles): no room for the 8 KB embedded-defaults area; built without it"
         ./waf configure --board "$B" $extra
         ./waf $vehicles

@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: sarus-firmware-${{ github.ref }}
@@ -27,7 +27,7 @@ jobs:
       matrix:
         board: [CubeOrange, CubeOrangePlus, Pixhawk6X, Pixhawk6C, Pixhawk1, fmuv3, MatekH743]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: recursive
       - name: Build Plane, Copter and Rover for ${{ matrix.board }}
@@ -38,7 +38,7 @@ jobs:
           export PATH="/opt/gcc-arm-none-eabi-10/bin:/github/home/.local/bin:$PATH"
           # per-board build, defaults area, owner defaults and identity check: see Tools/sarus/build_board.sh
           bash Tools/sarus/build_board.sh ${{ matrix.board }} out
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fw-${{ matrix.board }}
           path: out/
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-22.04
     container: ardupilot/ardupilot-dev-base:v0.1.3
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: recursive
       - name: Ed25519 check and key list
@@ -56,7 +56,7 @@ jobs:
         run: |
           set -e
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          python3 -m pip install --progress-bar off cryptography pymavlink
+          python3 -m pip install --progress-bar off cryptography pymavlink==2.4.50
           g++ -std=gnu++11 -O2 -Wall -Werror=shadow -I libraries Tools/sarus/tests/ed25519_check.cpp \
             libraries/AP_CheckFirmware/monocypher.cpp libraries/AP_SarusLock/monocypher_ed25519.cpp -o /tmp/ed25519_check
           /tmp/ed25519_check
@@ -87,7 +87,7 @@ jobs:
           sleep 15
           python3 "$GITHUB_WORKSPACE/Tools/sarus/tests/lock_sitl_test.py" --expect-release
           kill %1 || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
         with:
           name: lock-tests-sitl-logs
@@ -101,10 +101,10 @@ jobs:
         # locktest carries the public simulator test key, for testing the lock with Sarus Operation Planner
         variant: [release, locktest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: recursive
-      - uses: cygwin/cygwin-install-action@v6
+      - uses: cygwin/cygwin-install-action@3f0a3f9f988f7e96b8c18098ae05eaec175f5b52 # v6
         with:
           packages: cygwin64 gcc-g++=10.2.0-1 ccache python39 python39-future python39-lxml python39-pip python39-setuptools python39-wheel git procps gettext
           add-to-path: false
@@ -119,8 +119,8 @@ jobs:
           ln -sf /usr/bin/python3.9 /usr/local/bin/python3 &&
           ln -sf /usr/bin/python3.9 /usr/local/bin/python &&
           /usr/local/bin/python3 --version &&
-          /usr/local/bin/python3 -m pip install --progress-bar off empy==3.3.4 pexpect &&
-          /usr/local/bin/python3 -m pip install --progress-bar off dronecan --upgrade
+          /usr/local/bin/python3 -m pip install --progress-bar off empy==3.3.4 pexpect==4.9.0 &&
+          /usr/local/bin/python3 -m pip install --progress-bar off dronecan==1.0.27
       - name: Build Windows SITL
         env:
           PATH: /usr/bin:$(cygpath ${SYSTEMROOT})/system32
@@ -131,7 +131,7 @@ jobs:
           git config --global --add safe.directory "${CYGPATH_GITHUB_WORKSPACE}" &&
           export PATH=/usr/local/bin:/usr/bin:$(cygpath ${SYSTEMROOT})/system32 &&
           Tools/scripts/cygwin_build.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ matrix.variant == 'locktest' && 'sitl-windows-locktest' || 'sitl-windows' }}
           path: artifacts
@@ -140,23 +140,58 @@ jobs:
     needs: [boards, sitl-windows, lock-tests]
     if: startsWith(github.ref, 'refs/tags/sarus-v')
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    # the 4.6 and 4.7 releases both update sarus-manifest: one at a time, never cancelled half way
+    concurrency:
+      group: sarus-manifest
+      cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: The release must carry the owner's lock key
         shell: bash
         run: |
           grep -Eq '^#define AP_SARUS_LOCK_OWNER_KEY_COUNT [1-9]' libraries/AP_SarusLock/AP_SarusLock_keys.h || {
             echo "No owner key in AP_SarusLock_keys.h: this release would ship without the parameter lock."
             echo "Run Tools/sarus/lock_keys.py setup on the owner's PC first."; exit 1; }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: fw-*
           path: fw
           merge-multiple: true
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: sitl-windows
           path: sitl-windows
+      - name: Check the images against the tag and the keys
+        shell: bash
+        run: |
+          set -e
+          tag="${GITHUB_REF_NAME}"
+          [[ "$tag" =~ ^sarus-v(([0-9]+)\.([0-9]+)\.[0-9]+)-S([0-9]+)(-beta)?$ ]] || { echo "bad tag $tag"; exit 1; }
+          version=${BASH_REMATCH[1]}; line="${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"; build=${BASH_REMATCH[4]}
+          # a build number only goes up on its line, so a re-run or an old tag cannot roll aircraft back
+          others=$(git ls-remote --tags origin "refs/tags/sarus-v$line.*" | grep -v "refs/tags/$tag\$" | sed -nE 's#.*refs/tags/sarus-v[0-9.]+-S([0-9]+)(-beta)?$#\1#p' | sort -n | tail -1)
+          if [ -n "$others" ] && [ "$build" -le "$others" ]; then echo "S$build is not newer than S$others on the $line line"; exit 1; fi
+          python3 - "$version" "$build" <<'EOF'
+          import base64, glob, json, re, sys, zlib
+          version, build = sys.argv[1], sys.argv[2]
+          h = open('libraries/AP_SarusLock/AP_SarusLock_keys.h').read()
+          def keys(text):
+              return [bytes(int(x, 16) for x in re.findall(r'0x([0-9a-f]{2})', k)) for k in re.findall(r'\{(0x[^}]*)\}', text)]
+          test = keys(h.split('#define AP_SARUS_LOCK_TEST_KEY_BYTES', 1)[1].split('#define AP_SARUS_LOCK_OWNER_KEY_COUNT', 1)[0])[0]
+          owner = keys(h.split('#define AP_SARUS_LOCK_OWNER_KEYS', 1)[1])
+          assert len(test) == 32 and owner and all(len(k) == 32 for k in owner), 'key header not understood'
+          images = sorted(glob.glob('fw/**/*.apj', recursive=True))
+          assert images, 'no firmware images'
+          for f in images:
+              img = zlib.decompress(base64.b64decode(json.load(open(f))['image']))
+              assert re.search(rb' V' + re.escape(version.encode()) + rb' Sarus-' + build.encode() + rb'\b', img), \
+                  '%s does not report V%s Sarus-%s' % (f, version, build)
+              assert all(k in img for k in owner), '%s lacks an owner key' % f
+              assert test not in img, '%s contains the public test key' % f
+          print('%d images: V%s Sarus-%s, owner keys present, no test key' % (len(images), version, build))
+          EOF
       - name: Firmware files and list
         id: meta
         shell: bash
@@ -173,7 +208,7 @@ jobs:
           cp out/manifest-release.json out/assets/manifest-release.json
           echo "rtype=$rtype" >> "$GITHUB_OUTPUT"
       - name: Publish release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: out/assets/*
           prerelease: ${{ steps.meta.outputs.rtype == 'beta' }}
@@ -202,5 +237,5 @@ jobs:
           print('manifest: %d entries (%d new %s)' % (len(keep) + len(new), len(new), kind))
           EOF
           git add manifest.json
-          git commit -m "Firmware list for ${GITHUB_REF_NAME}"
+          git diff --cached --quiet || git commit -m "Firmware list for ${GITHUB_REF_NAME}"
           git push origin sarus-manifest
