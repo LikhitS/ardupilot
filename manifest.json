@@ -546,6 +546,528 @@
    "brand_name": "Pixhawk1",
    "manufacturer": "mRobotics",
    "image_size": 1447180
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Copter",
+   "platform": "MatekH743",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Copter-4.6.3-S2-MatekH743.apj",
+   "mav-type": "Copter",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 1013,
+   "bootloader_str": [
+    "MatekH743-BL"
+   ],
+   "USBID": [
+    "0x1209/0x5740"
+   ],
+   "brand_name": "Matek H743",
+   "manufacturer": "Matek",
+   "image_size": 1609676
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Copter",
+   "platform": "fmuv3",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Copter-4.6.3-S2-fmuv3.apj",
+   "mav-type": "Copter",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 9,
+   "bootloader_str": [
+    "fmuv3-BL",
+    "PX4 BL FMU v2.x"
+   ],
+   "USBID": [
+    "0x1209/0x5741",
+    "0x26AC/0x0011"
+   ],
+   "image_size": 1615676
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Copter",
+   "platform": "Pixhawk6X",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Copter-4.6.3-S2-Pixhawk6X.apj",
+   "mav-type": "Copter",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 53,
+   "bootloader_str": [
+    "Pixhawk6X-BL",
+    "PX4 BL FMU v6X.x"
+   ],
+   "USBID": [
+    "0x1209/0x5740",
+    "0x3185/0x0035"
+   ],
+   "image_size": 1957216
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Copter",
+   "platform": "Pixhawk6C",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Copter-4.6.3-S2-Pixhawk6C.apj",
+   "mav-type": "Copter",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 56,
+   "bootloader_str": [
+    "Pixhawk6C-BL",
+    "PX4 BL FMU v6C.x"
+   ],
+   "USBID": [
+    "0x3162/0x0053",
+    "0x3185/0x0038"
+   ],
+   "image_size": 1841904
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Copter",
+   "platform": "CubeOrange",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Copter-4.6.3-S2-CubeOrange.apj",
+   "mav-type": "Copter",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 140,
+   "bootloader_str": [
+    "CubeOrange-BL"
+   ],
+   "USBID": [
+    "0x2dae/0x1016"
+   ],
+   "brand_name": "CubeOrange",
+   "manufacturer": "Hex/ProfiCNC",
+   "image_size": 1901464
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Copter",
+   "platform": "Pixhawk1",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Copter-4.6.3-S2-Pixhawk1.apj",
+   "mav-type": "Copter",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 9,
+   "bootloader_str": [
+    "Pixhawk1-BL",
+    "PX4 BL FMU v2.x"
+   ],
+   "USBID": [
+    "0x1209/0x5741",
+    "0x26AC/0x0011"
+   ],
+   "brand_name": "Pixhawk1",
+   "manufacturer": "mRobotics",
+   "image_size": 1634260
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Plane",
+   "platform": "MatekH743",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Plane-4.6.3-S2-MatekH743.apj",
+   "mav-type": "FIXED_WING",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 1013,
+   "bootloader_str": [
+    "MatekH743-BL"
+   ],
+   "USBID": [
+    "0x1209/0x5740"
+   ],
+   "brand_name": "Matek H743",
+   "manufacturer": "Matek",
+   "image_size": 1594332
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Plane",
+   "platform": "CubeOrangePlus",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Plane-4.6.3-S2-CubeOrangePlus.apj",
+   "mav-type": "FIXED_WING",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 1063,
+   "bootloader_str": [
+    "CubeOrangePlus-BL"
+   ],
+   "USBID": [
+    "0x2dae/0x1058"
+   ],
+   "image_size": 1965768
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Plane",
+   "platform": "fmuv3",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Plane-4.6.3-S2-fmuv3.apj",
+   "mav-type": "FIXED_WING",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 9,
+   "bootloader_str": [
+    "fmuv3-BL",
+    "PX4 BL FMU v2.x"
+   ],
+   "USBID": [
+    "0x1209/0x5741",
+    "0x26AC/0x0011"
+   ],
+   "image_size": 1600356
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Plane",
+   "platform": "Pixhawk6X",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Plane-4.6.3-S2-Pixhawk6X.apj",
+   "mav-type": "FIXED_WING",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 53,
+   "bootloader_str": [
+    "Pixhawk6X-BL",
+    "PX4 BL FMU v6X.x"
+   ],
+   "USBID": [
+    "0x1209/0x5740",
+    "0x3185/0x0035"
+   ],
+   "image_size": 1945608
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Plane",
+   "platform": "Pixhawk6C",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Plane-4.6.3-S2-Pixhawk6C.apj",
+   "mav-type": "FIXED_WING",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 56,
+   "bootloader_str": [
+    "Pixhawk6C-BL",
+    "PX4 BL FMU v6C.x"
+   ],
+   "USBID": [
+    "0x3162/0x0053",
+    "0x3185/0x0038"
+   ],
+   "image_size": 1829768
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Plane",
+   "platform": "CubeOrange",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Plane-4.6.3-S2-CubeOrange.apj",
+   "mav-type": "FIXED_WING",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 140,
+   "bootloader_str": [
+    "CubeOrange-BL"
+   ],
+   "USBID": [
+    "0x2dae/0x1016"
+   ],
+   "brand_name": "CubeOrange",
+   "manufacturer": "Hex/ProfiCNC",
+   "image_size": 1888960
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Plane",
+   "platform": "Pixhawk1",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Plane-4.6.3-S2-Pixhawk1.apj",
+   "mav-type": "FIXED_WING",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 9,
+   "bootloader_str": [
+    "Pixhawk1-BL",
+    "PX4 BL FMU v2.x"
+   ],
+   "USBID": [
+    "0x1209/0x5741",
+    "0x26AC/0x0011"
+   ],
+   "brand_name": "Pixhawk1",
+   "manufacturer": "mRobotics",
+   "image_size": 1619668
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Rover",
+   "platform": "MatekH743",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Rover-4.6.3-S2-MatekH743.apj",
+   "mav-type": "GROUND_ROVER",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 1013,
+   "bootloader_str": [
+    "MatekH743-BL"
+   ],
+   "USBID": [
+    "0x1209/0x5740"
+   ],
+   "brand_name": "Matek H743",
+   "manufacturer": "Matek",
+   "image_size": 1466548
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Rover",
+   "platform": "CubeOrangePlus",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Rover-4.6.3-S2-CubeOrangePlus.apj",
+   "mav-type": "GROUND_ROVER",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 1063,
+   "bootloader_str": [
+    "CubeOrangePlus-BL"
+   ],
+   "USBID": [
+    "0x2dae/0x1058"
+   ],
+   "image_size": 1834776
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Rover",
+   "platform": "fmuv3",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Rover-4.6.3-S2-fmuv3.apj",
+   "mav-type": "GROUND_ROVER",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 9,
+   "bootloader_str": [
+    "fmuv3-BL",
+    "PX4 BL FMU v2.x"
+   ],
+   "USBID": [
+    "0x1209/0x5741",
+    "0x26AC/0x0011"
+   ],
+   "image_size": 1471284
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Rover",
+   "platform": "Pixhawk6X",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Rover-4.6.3-S2-Pixhawk6X.apj",
+   "mav-type": "GROUND_ROVER",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 53,
+   "bootloader_str": [
+    "Pixhawk6X-BL",
+    "PX4 BL FMU v6X.x"
+   ],
+   "USBID": [
+    "0x1209/0x5740",
+    "0x3185/0x0035"
+   ],
+   "image_size": 1803672
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Rover",
+   "platform": "Pixhawk6C",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Rover-4.6.3-S2-Pixhawk6C.apj",
+   "mav-type": "GROUND_ROVER",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 56,
+   "bootloader_str": [
+    "Pixhawk6C-BL",
+    "PX4 BL FMU v6C.x"
+   ],
+   "USBID": [
+    "0x3162/0x0053",
+    "0x3185/0x0038"
+   ],
+   "image_size": 1689336
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Rover",
+   "platform": "CubeOrange",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Rover-4.6.3-S2-CubeOrange.apj",
+   "mav-type": "GROUND_ROVER",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 140,
+   "bootloader_str": [
+    "CubeOrange-BL"
+   ],
+   "USBID": [
+    "0x2dae/0x1016"
+   ],
+   "brand_name": "CubeOrange",
+   "manufacturer": "Hex/ProfiCNC",
+   "image_size": 1748488
+  },
+  {
+   "mav-autopilot": "ARDUPILOTMEGA",
+   "vehicletype": "Rover",
+   "platform": "Pixhawk1",
+   "git-sha": "b842aaba500318c63cc98684d63f9d6f83f7254b",
+   "url": "https://github.com/LikhitS/ardupilot/releases/download/sarus-v4.6.3-S2/Sarus-Rover-4.6.3-S2-Pixhawk1.apj",
+   "mav-type": "GROUND_ROVER",
+   "mav-firmware-version-type": "OFFICIAL",
+   "mav-firmware-version-str": "V4.6.3-Sarus-2",
+   "latest": 0,
+   "format": "apj",
+   "mav-firmware-version": "4.6.3",
+   "mav-firmware-version-major": "4",
+   "mav-firmware-version-minor": "6",
+   "mav-firmware-version-patch": "3",
+   "board_id": 9,
+   "bootloader_str": [
+    "Pixhawk1-BL",
+    "PX4 BL FMU v2.x"
+   ],
+   "USBID": [
+    "0x1209/0x5741",
+    "0x26AC/0x0011"
+   ],
+   "brand_name": "Pixhawk1",
+   "manufacturer": "mRobotics",
+   "image_size": 1489828
   }
  ]
 }
